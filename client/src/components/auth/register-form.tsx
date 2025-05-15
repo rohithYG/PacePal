@@ -73,12 +73,16 @@ export function RegisterForm() {
         description: 'Your account has been created successfully',
       });
       setLocation('/');
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Registration failed';
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 
+                         error?.message || 
+                         'Registration failed. Please try different credentials.';
+      console.error('Registration error:', error);
       toast({
-        title: 'Registration failed',
+        title: 'Registration Failed',
         description: errorMessage,
         variant: 'destructive',
+        duration: 5000,
       });
     } finally {
       setIsLoading(false);
