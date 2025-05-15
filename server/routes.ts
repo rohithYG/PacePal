@@ -59,9 +59,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return done(null, false, { message: "Incorrect username or password" });
         }
 
-        // For MVP we're comparing direct passwords
-        // In production, we would hash passwords
-        if (user.password !== password) {
+        // Compare password with bcrypt
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
           return done(null, false, { message: "Incorrect username or password" });
         }
 
@@ -98,7 +98,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * Authentication Routes
    */
   app.post("/api/auth/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json({ user: req.user });
+    const userResponse = {
+      ...req.user,
+      password: undefined
+    };
+    res.status(200).json({ user: userResponse });
   });
 
   app.post("/api/auth/register", validateRequest(insertUserSchema), async (req, res) => {
@@ -114,15 +118,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Phone number already in use" });
       }
 
-      // Create new user
-      const user = await storage.createUser(req.body);
+      // Hash the password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(req.body.password, salt);
+
+      // Create new user with hashed password
+      const userData = {
+        ...req.body,
+        password: hashedPassword
+      };
+      
+      const user = await storage.createUser(userData);
+      
+      // Create a sanitized version without password for the client
+      const userResponse = {
+        ...user,
+        password: undefined
+      };
       
       // Automatically log in the new user
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({ message: "Error during login after registration" });
         }
-        return res.status(201).json({ user });
+        return res.status(201).json({ user: userResponse });
       });
     } catch (error: any) {
       return res.status(500).json({ message: error.message });
@@ -139,7 +158,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/me", ensureAuthenticated, (req, res) => {
-    res.json({ user: req.user });
+    const userResponse = {
+      ...req.user,
+      password: undefined
+    };
+    res.json({ user: userResponse });
   });
 
   /**
