@@ -74,9 +74,10 @@ export function RegisterForm() {
       });
       setLocation('/');
     } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Registration failed';
       toast({
         title: 'Registration failed',
-        description: 'Please try again with different information',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
