@@ -178,8 +178,8 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(habits.userId, userId),
-          gte(habitLogs.completedAt, startDate),
-          lte(habitLogs.completedAt, endDate)
+          gte(habitLogs.date, startDate),
+          lte(habitLogs.date, endDate)
         )
       );
   }
@@ -215,8 +215,8 @@ export class DatabaseStorage implements IStorage {
       .from(notifications)
       .where(
         and(
-          eq(notifications.status, 'pending'),
-          lte(notifications.scheduledFor, now)
+          eq(notifications.sent, false),
+          lte(notifications.scheduledTime, now)
         )
       );
   }

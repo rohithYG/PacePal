@@ -28,7 +28,9 @@ export const insertUserSchema = createInsertSchema(users).pick({
 // Habit model
 export const habits = pgTable("habits", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   startDate: timestamp("start_date").notNull(),
@@ -54,7 +56,9 @@ export const insertHabitSchema = createInsertSchema(habits).pick({
 // Routine model
 export const routines = pgTable("routines", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   description: text("description"),
   timeStart: text("time_start").notNull(), // Format: "HH:MM"
@@ -74,8 +78,12 @@ export const insertRoutineSchema = createInsertSchema(routines).pick({
 // HabitLog model - to track completed habits
 export const habitLogs = pgTable("habit_logs", {
   id: serial("id").primaryKey(),
-  habitId: integer("habit_id").notNull(),
-  userId: integer("user_id").notNull(),
+  habitId: integer("habit_id")
+    .notNull()
+    .references(() => habits.id, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   date: timestamp("date").notNull(),
   completed: boolean("completed").notNull().default(false),
 });
@@ -90,9 +98,11 @@ export const insertHabitLogSchema = createInsertSchema(habitLogs).pick({
 // Notification model
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  habitId: integer("habit_id"),
-  routineId: integer("routine_id"),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  habitId: integer("habit_id").references(() => habits.id, { onDelete: "set null" }),
+  routineId: integer("routine_id").references(() => routines.id, { onDelete: "set null" }),
   message: text("message").notNull(),
   scheduledTime: timestamp("scheduled_time").notNull(),
   sent: boolean("sent").default(false),
@@ -106,6 +116,62 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
   scheduledTime: true,
   sent: true,
 });
+
+// Define relations for each model
+export const usersRelations = relations(users, ({ many }) => ({
+  habits: many(habits),
+  routines: many(routines),
+  habitLogs: many(habitLogs),
+  notifications: many(notifications),
+}));
+
+export const habitsRelations = relations(habits, ({ one, many }) => ({
+  user: one(users, {
+    fields: [habits.userId],
+    references: [users.id],
+  }),
+  routine: one(routines, {
+    fields: [habits.routineId],
+    references: [routines.id],
+  }),
+  logs: many(habitLogs),
+  notifications: many(notifications),
+}));
+
+export const routinesRelations = relations(routines, ({ one, many }) => ({
+  user: one(users, {
+    fields: [routines.userId],
+    references: [users.id],
+  }),
+  habits: many(habits),
+  notifications: many(notifications),
+}));
+
+export const habitLogsRelations = relations(habitLogs, ({ one }) => ({
+  habit: one(habits, {
+    fields: [habitLogs.habitId],
+    references: [habits.id],
+  }),
+  user: one(users, {
+    fields: [habitLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  habit: one(habits, {
+    fields: [notifications.habitId],
+    references: [habits.id],
+  }),
+  routine: one(routines, {
+    fields: [notifications.routineId],
+    references: [routines.id],
+  }),
+}));
 
 // Define TypeScript types for each model
 export type User = typeof users.$inferSelect;
