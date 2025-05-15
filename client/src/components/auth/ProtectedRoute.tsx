@@ -1,23 +1,16 @@
-
-import { ReactNode } from 'react';
-import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { Navigate, useLocation } from 'wouter';
 
-interface ProtectedRouteProps {
-  children: ReactNode;
-}
-
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const [, setLocation] = useLocation();
+export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  if (!isAuthenticated) {
-    setLocation('/login');
-    return null;
+  if (!isAuthenticated && location !== '/login') {
+    return <Navigate to="/login" />;
   }
 
   return <>{children}</>;

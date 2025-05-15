@@ -38,7 +38,11 @@ function App() {
                 <Routines />
               </ProtectedRoute>
             </Route>
-            <Route path="/" component={Dashboard} />
+            <Route path="/">
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            </Route>
             <Route component={NotFound} />
           </Switch>
         </TooltipProvider>
