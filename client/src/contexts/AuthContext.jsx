@@ -1,7 +1,23 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as authService from '../lib/auth';
 
-const AuthContext = createContext({
+type User = {
+  id: string;
+  username: string;
+  email: string;
+} | null;
+
+type AuthContextType = {
+  user: User;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (username: string, password: string) => Promise<any>;
+  register: (userData: any) => Promise<any>;
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   isLoading: true,
@@ -18,8 +34,8 @@ export const useAuth = () => {
   return context;
 };
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -37,7 +53,7 @@ export function AuthProvider({ children }) {
     loadUser();
   }, []);
 
-  const login = async (username, password) => {
+  const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
       const loggedInUser = await authService.login({ username, password });
@@ -48,7 +64,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (userData) => {
+  const register = async (userData: any) => {
     setIsLoading(true);
     try {
       const newUser = await authService.register(userData);
@@ -69,17 +85,15 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const value = {
-    user,
-    isAuthenticated: !!user,
-    isLoading,
-    login,
-    register,
-    logout
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      login,
+      register,
+      logout
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -33,6 +33,8 @@ function WelcomePage() {
   );
 }
 
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
