@@ -1,12 +1,11 @@
-import { 
-  users, type User, type InsertUser,
-  habits, type Habit, type InsertHabit,
-  routines, type Routine, type InsertRoutine,
-  habitLogs, type HabitLog, type InsertHabitLog,
-  notifications, type Notification, type InsertNotification
-} from "@shared/schema";
+import { users, habits, routines, habitLogs, notifications } from "@shared/schema";
+import { type User, type InsertUser, type Habit, type InsertHabit, 
+         type Routine, type InsertRoutine, type HabitLog, 
+         type InsertHabitLog, type Notification, type InsertNotification } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, gte, lte } from "drizzle-orm";
 
-// Comprehensive storage interface
+// Interface for storage operations
 export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
@@ -48,223 +47,199 @@ export interface IStorage {
   deleteNotification(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private habits: Map<number, Habit>;
-  private routines: Map<number, Routine>;
-  private habitLogs: Map<number, HabitLog>;
-  private notifications: Map<number, Notification>;
-  
-  private userId: number;
-  private habitId: number;
-  private routineId: number;
-  private habitLogId: number;
-  private notificationId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.habits = new Map();
-    this.routines = new Map();
-    this.habitLogs = new Map();
-    this.notifications = new Map();
-    
-    this.userId = 1;
-    this.habitId = 1;
-    this.routineId = 1;
-    this.habitLogId = 1;
-    this.notificationId = 1;
-  }
-
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
 
   async getUserByPhone(phone: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.phone === phone,
-    );
+    const [user] = await db.select().from(users).where(eq(users.phone, phone));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...userData };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const [user] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   // Habit methods
   async getHabit(id: number): Promise<Habit | undefined> {
-    return this.habits.get(id);
+    const [habit] = await db.select().from(habits).where(eq(habits.id, id));
+    return habit || undefined;
   }
 
   async getHabitsByUser(userId: number): Promise<Habit[]> {
-    return Array.from(this.habits.values()).filter(
-      (habit) => habit.userId === userId,
-    );
+    return db.select().from(habits).where(eq(habits.userId, userId));
   }
 
   async getHabitsByRoutine(routineId: number): Promise<Habit[]> {
-    return Array.from(this.habits.values()).filter(
-      (habit) => habit.routineId === routineId,
-    );
+    return db.select().from(habits).where(eq(habits.routineId, routineId));
   }
 
   async createHabit(insertHabit: InsertHabit): Promise<Habit> {
-    const id = this.habitId++;
-    const habit: Habit = { ...insertHabit, id };
-    this.habits.set(id, habit);
+    const [habit] = await db.insert(habits).values(insertHabit).returning();
     return habit;
   }
 
   async updateHabit(id: number, habitData: Partial<Habit>): Promise<Habit | undefined> {
-    const habit = this.habits.get(id);
-    if (!habit) return undefined;
-    
-    const updatedHabit = { ...habit, ...habitData };
-    this.habits.set(id, updatedHabit);
-    return updatedHabit;
+    const [habit] = await db
+      .update(habits)
+      .set(habitData)
+      .where(eq(habits.id, id))
+      .returning();
+    return habit || undefined;
   }
 
   async deleteHabit(id: number): Promise<boolean> {
-    return this.habits.delete(id);
+    const result = await db.delete(habits).where(eq(habits.id, id));
+    return result.rowCount > 0;
   }
 
   // Routine methods
   async getRoutine(id: number): Promise<Routine | undefined> {
-    return this.routines.get(id);
+    const [routine] = await db.select().from(routines).where(eq(routines.id, id));
+    return routine || undefined;
   }
 
   async getRoutinesByUser(userId: number): Promise<Routine[]> {
-    return Array.from(this.routines.values()).filter(
-      (routine) => routine.userId === userId,
-    );
+    return db.select().from(routines).where(eq(routines.userId, userId));
   }
 
   async createRoutine(insertRoutine: InsertRoutine): Promise<Routine> {
-    const id = this.routineId++;
-    const routine: Routine = { ...insertRoutine, id };
-    this.routines.set(id, routine);
+    const [routine] = await db.insert(routines).values(insertRoutine).returning();
     return routine;
   }
 
   async updateRoutine(id: number, routineData: Partial<Routine>): Promise<Routine | undefined> {
-    const routine = this.routines.get(id);
-    if (!routine) return undefined;
-    
-    const updatedRoutine = { ...routine, ...routineData };
-    this.routines.set(id, updatedRoutine);
-    return updatedRoutine;
+    const [routine] = await db
+      .update(routines)
+      .set(routineData)
+      .where(eq(routines.id, id))
+      .returning();
+    return routine || undefined;
   }
 
   async deleteRoutine(id: number): Promise<boolean> {
-    return this.routines.delete(id);
+    const result = await db.delete(routines).where(eq(routines.id, id));
+    return result.rowCount > 0;
   }
 
   // HabitLog methods
   async getHabitLog(id: number): Promise<HabitLog | undefined> {
-    return this.habitLogs.get(id);
+    const [log] = await db.select().from(habitLogs).where(eq(habitLogs.id, id));
+    return log || undefined;
   }
 
   async getHabitLogsByUser(userId: number): Promise<HabitLog[]> {
-    return Array.from(this.habitLogs.values()).filter(
-      (log) => log.userId === userId,
-    );
+    return db
+      .select()
+      .from(habitLogs)
+      .innerJoin(habits, eq(habitLogs.habitId, habits.id))
+      .where(eq(habits.userId, userId));
   }
 
   async getHabitLogsByHabit(habitId: number): Promise<HabitLog[]> {
-    return Array.from(this.habitLogs.values()).filter(
-      (log) => log.habitId === habitId,
-    );
+    return db.select().from(habitLogs).where(eq(habitLogs.habitId, habitId));
   }
 
   async getHabitLogsForDate(userId: number, date: Date): Promise<HabitLog[]> {
-    const dateStart = new Date(date);
-    dateStart.setHours(0, 0, 0, 0);
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
     
-    const dateEnd = new Date(date);
-    dateEnd.setHours(23, 59, 59, 999);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
     
-    return Array.from(this.habitLogs.values()).filter(
-      (log) => log.userId === userId && 
-                new Date(log.date) >= dateStart && 
-                new Date(log.date) <= dateEnd
-    );
+    return db
+      .select()
+      .from(habitLogs)
+      .innerJoin(habits, eq(habitLogs.habitId, habits.id))
+      .where(
+        and(
+          eq(habits.userId, userId),
+          gte(habitLogs.completedAt, startDate),
+          lte(habitLogs.completedAt, endDate)
+        )
+      );
   }
 
   async createHabitLog(insertLog: InsertHabitLog): Promise<HabitLog> {
-    const id = this.habitLogId++;
-    const log: HabitLog = { ...insertLog, id };
-    this.habitLogs.set(id, log);
+    const [log] = await db.insert(habitLogs).values(insertLog).returning();
     return log;
   }
 
   async updateHabitLog(id: number, logData: Partial<HabitLog>): Promise<HabitLog | undefined> {
-    const log = this.habitLogs.get(id);
-    if (!log) return undefined;
-    
-    const updatedLog = { ...log, ...logData };
-    this.habitLogs.set(id, updatedLog);
-    return updatedLog;
+    const [log] = await db
+      .update(habitLogs)
+      .set(logData)
+      .where(eq(habitLogs.id, id))
+      .returning();
+    return log || undefined;
   }
 
   // Notification methods
   async getNotification(id: number): Promise<Notification | undefined> {
-    return this.notifications.get(id);
+    const [notification] = await db.select().from(notifications).where(eq(notifications.id, id));
+    return notification || undefined;
   }
 
   async getNotificationsByUser(userId: number): Promise<Notification[]> {
-    return Array.from(this.notifications.values()).filter(
-      (notification) => notification.userId === userId,
-    );
+    return db.select().from(notifications).where(eq(notifications.userId, userId));
   }
 
   async getPendingNotifications(): Promise<Notification[]> {
-    return Array.from(this.notifications.values()).filter(
-      (notification) => !notification.sent && new Date(notification.scheduledTime) <= new Date()
-    );
+    const now = new Date();
+    return db
+      .select()
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.status, 'pending'),
+          lte(notifications.scheduledFor, now)
+        )
+      );
   }
 
   async createNotification(insertNotification: InsertNotification): Promise<Notification> {
-    const id = this.notificationId++;
-    const notification: Notification = { ...insertNotification, id };
-    this.notifications.set(id, notification);
+    const [notification] = await db.insert(notifications).values(insertNotification).returning();
     return notification;
   }
 
   async updateNotification(id: number, notificationData: Partial<Notification>): Promise<Notification | undefined> {
-    const notification = this.notifications.get(id);
-    if (!notification) return undefined;
-    
-    const updatedNotification = { ...notification, ...notificationData };
-    this.notifications.set(id, updatedNotification);
-    return updatedNotification;
+    const [notification] = await db
+      .update(notifications)
+      .set(notificationData)
+      .where(eq(notifications.id, id))
+      .returning();
+    return notification || undefined;
   }
 
   async deleteNotification(id: number): Promise<boolean> {
-    return this.notifications.delete(id);
+    const result = await db.delete(notifications).where(eq(notifications.id, id));
+    return result.rowCount > 0;
   }
 }
 
-export const storage = new MemStorage();
+// Export an instance of the storage
+export const storage = new DatabaseStorage();
