@@ -114,7 +114,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteHabit(id: number): Promise<boolean> {
     const result = await db.delete(habits).where(eq(habits.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // Routine methods
@@ -143,7 +143,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRoutine(id: number): Promise<boolean> {
     const result = await db.delete(routines).where(eq(routines.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // HabitLog methods
@@ -153,11 +153,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getHabitLogsByUser(userId: number): Promise<HabitLog[]> {
-    return db
-      .select()
+    const result = await db
+      .select({
+        id: habitLogs.id,
+        habitId: habitLogs.habitId,
+        userId: habitLogs.userId,
+        date: habitLogs.date,
+        completed: habitLogs.completed
+      })
       .from(habitLogs)
       .innerJoin(habits, eq(habitLogs.habitId, habits.id))
       .where(eq(habits.userId, userId));
+    
+    return result;
   }
 
   async getHabitLogsByHabit(habitId: number): Promise<HabitLog[]> {
@@ -171,8 +179,14 @@ export class DatabaseStorage implements IStorage {
     const endDate = new Date(date);
     endDate.setHours(23, 59, 59, 999);
     
-    return db
-      .select()
+    const result = await db
+      .select({
+        id: habitLogs.id,
+        habitId: habitLogs.habitId,
+        userId: habitLogs.userId,
+        date: habitLogs.date,
+        completed: habitLogs.completed
+      })
       .from(habitLogs)
       .innerJoin(habits, eq(habitLogs.habitId, habits.id))
       .where(
@@ -182,6 +196,8 @@ export class DatabaseStorage implements IStorage {
           lte(habitLogs.date, endDate)
         )
       );
+    
+    return result;
   }
 
   async createHabitLog(insertLog: InsertHabitLog): Promise<HabitLog> {
@@ -237,7 +253,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteNotification(id: number): Promise<boolean> {
     const result = await db.delete(notifications).where(eq(notifications.id, id));
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 
