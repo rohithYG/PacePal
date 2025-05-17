@@ -16,11 +16,15 @@ export interface RegisterData {
   notificationsEnabled: boolean;
 }
 
-export const login = async (credentials: LoginCredentials): Promise<User> => {
-  const response = await apiRequest('POST', '/api/auth/login', credentials);
-  const data = await response.json();
-  return data.user;
-};
+export async function login(credentials: LoginCredentials): Promise<User> {
+  try {
+    const response = await apiRequest('POST', '/api/auth/login', credentials);
+    return response.json();
+  } catch (error: any) {
+    console.error('Login error:', error);
+    throw new Error(error?.response?.data?.message || 'Login failed. Please try again.');
+  }
+}
 
 export const register = async (userData: RegisterData): Promise<User> => {
   const response = await apiRequest('POST', '/api/auth/register', userData);

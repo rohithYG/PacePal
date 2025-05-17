@@ -53,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsLoading(false);
       }
     };
-    
+
     fetchUser();
   }, []);
 
@@ -68,17 +68,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
         body: JSON.stringify({ username, password }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Login failed');
       }
-      
+
       const data = await response.json();
       setUser(data);
       return data;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+    } catch (error: any) {
+        console.error('Login error:', error);
+        throw new Error(error?.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -95,17 +95,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         },
         body: JSON.stringify(userData),
       });
-      
+
       if (!response.ok) {
         throw new Error('Registration failed');
       }
-      
+
       const data = await response.json();
       setUser(data);
       return data;
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+    } catch (error: any) {
+        console.error('Registration error:', error);
+        throw new Error(error?.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await fetch('/api/auth/logout', {
         method: 'POST',
       });
-      
+
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
